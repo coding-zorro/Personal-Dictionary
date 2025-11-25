@@ -17,19 +17,14 @@
         <h1>Personal Dictionary</h1>
 
         <section aria-labelledby="add-section">
-            <h2 id="add-section">Add New Word</h2>
+            <h2 id="add-section">Search Word</h2>
             <!-- Add new word -->
             <form id="add-word-form" onsubmit="event.preventDefault(); addWord();">
-                <div class="form-group">
-                    <label for="word">Word:</label>
-                    <input id="word" type="text" placeholder="Enter a word" required aria-label="Word to add">
+                <div class="form-inline">
+
+                    <input id="word" type="text" placeholder="Enter a word" required aria-label="Word to search" />
+                    <button type="submit" class="btn-add" aria-label="Search word">Search</button>
                 </div>
-                <div class="form-group">
-                    <label for="meaning">Meaning (optional):</label>
-                    <input id="meaning" type="text" placeholder="Leave blank for auto-lookup"
-                        aria-label="Word meaning (optional)">
-                </div>
-                <button type="submit" class="btn-add" aria-label="Add word to dictionary">Add</button>
             </form>
         </section>
 
@@ -41,8 +36,7 @@
                     <tr>
                         <th scope="col">Word</th>
                         <th scope="col">Meaning</th>
-                        <th scope="col">Edit</th>
-                        <th scope="col">Delete</th>
+
                     </tr>
                 </thead>
                 <tbody id="table-body"></tbody>

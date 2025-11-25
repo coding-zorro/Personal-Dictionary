@@ -83,7 +83,9 @@ function enableEdit(item, meaningCell, editBtn) {
     const input = document.createElement("input");
     input.type = "text";
     input.value = item.meaning;
-    input.style.width = "250px";
+    // Responsive width: 100% on mobile, 250px on desktop
+    input.style.width = window.innerWidth <= 768 ? "100%" : "250px";
+    input.style.boxSizing = "border-box";
     // Replace text with an input box
     meaningCell.innerHTML = "";
     meaningCell.appendChild(input);

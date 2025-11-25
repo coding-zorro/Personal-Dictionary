@@ -1,5 +1,5 @@
 // script.js for Dictionary app
-const API = "http://localhost:3000";
+const API = "https://personal-dictionary-x499.onrender.com";
 
 // Show notification to user
 function showNotification(message, type = "info") {

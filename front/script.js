@@ -1,5 +1,6 @@
 // script.js for Dictionary app
-const API = "https://personal-dictionary-x499.onrender.com";
+// const API = "https://personal-dictionary-x499.onrender.com";
+const API = "http://localhost:3000";
 
 // Show notification to user
 function showNotification(message, type = "info") {
@@ -29,43 +30,64 @@ async function loadWords() {
         }
 
         const items = await res.json();
-        const tbody = document.getElementById("table-body");
-        tbody.innerHTML = "";
+        const wordsList = document.getElementById("words-list");
+        wordsList.innerHTML = "";
 
         if (items.length === 0) {
-            const tr = document.createElement("tr");
-            const td = document.createElement("td");
-            td.colSpan = 4;
-            td.textContent = "No words yet. Add your first word above!";
-            td.style.textAlign = "center";
-            td.style.fontStyle = "italic";
-            td.style.color = "#666";
-            tr.appendChild(td);
-            tbody.appendChild(tr);
+            const emptyMsg = document.createElement("p");
+            emptyMsg.textContent = "No words yet. Add your first word above!";
+            emptyMsg.style.textAlign = "center";
+            emptyMsg.style.fontStyle = "italic";
+            emptyMsg.style.color = "#666";
+            wordsList.appendChild(emptyMsg);
             return;
         }
 
         items.forEach(item => {
-            const tr = document.createElement("tr");
-            // Word cell as link to detail page
-            const tdWord = document.createElement("td");
-            const link = document.createElement("a");
-            link.href = `word.html?word=${encodeURIComponent(item.word)}`;
-            link.textContent = item.word;
-            link.style.textDecoration = "none";
-            link.style.color = "inherit";
-            tdWord.appendChild(link);
-            tr.appendChild(tdWord);
-            // Meaning cell (editable)
-            const tdMeaning = document.createElement("td");
-            tdMeaning.textContent = item.meaning;
-            tr.appendChild(tdMeaning);
-            // No edit/delete columns in this view
-            tbody.appendChild(tr);
+            // Create word item container
+            const wordItem = document.createElement("div");
+            wordItem.className = "word-item";
+
+            // Word as clickable link
+            const wordLink = document.createElement("a");
+            wordLink.href = `word.html?word=${encodeURIComponent(item.word)}`;
+            wordLink.textContent = item.word;
+            wordLink.className = "word-link";
+
+            // Meaning text
+            const meaningText = document.createElement("p");
+            meaningText.textContent = item.meaning;
+            meaningText.className = "meaning-text";
+
+            wordItem.appendChild(wordLink);
+            wordItem.appendChild(meaningText);
+            wordsList.appendChild(wordItem);
         });
     } catch (error) {
         console.error("Error loading words:", error);
         showNotification("Failed to load words. Please check if the server is running.", "error");
+    }
+}
+
+// Learn a random word from Gemini
+async function learnRandomWord() {
+    try {
+        showNotification("Getting a random word...", "info");
+
+        const res = await fetch(`${API}/learn`);
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Failed to get random word');
+        }
+
+        const { word, meaning } = await res.json();
+
+        // Navigate to new-word page with the random word and meaning
+        window.location.href = `new-word.html?word=${encodeURIComponent(word)}&meaning=${encodeURIComponent(meaning)}`;
+    } catch (error) {
+        console.error("Error learning random word:", error);
+        showNotification(error.message || "Failed to get random word. Please try again.", "error");
     }
 }
 
@@ -129,7 +151,7 @@ function enableEdit(item, meaningCell, editBtn) {
 // Search for word (doesn't save to DB)
 async function addWord() {
     const wordInput = document.getElementById("word");
-    const word = wordInput.value.trim();
+    const word = wordInput.value.trim().toLowerCase(); // Convert to lowercase
 
     // Validate input
     if (!word) {
@@ -384,9 +406,15 @@ async function loadNewWord() {
 // ===== Page Initialization =====
 
 // Check which page we're on and initialize accordingly
-if (document.getElementById('table-body')) {
+if (document.getElementById('words-list')) {
     // We're on index.html
     loadWords();
+
+    // Add Learn button event listener
+    const learnBtn = document.getElementById('learn-btn');
+    if (learnBtn) {
+        learnBtn.addEventListener('click', learnRandomWord);
+    }
 } else if (document.getElementById('word-title')) {
     // We're on word.html
     loadWordDetail();

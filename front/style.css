@@ -125,6 +125,43 @@ p {
     line-height: 1.5;
 }
 
+/* Word list styles */
+#words-list {
+    margin-top: 20px;
+}
+
+.word-item {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.word-item:last-child {
+    border-bottom: none;
+}
+
+.word-link {
+    display: block;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
+    text-decoration: none;
+    margin-bottom: 8px;
+    transition: color 0.2s;
+}
+
+.word-link:hover {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.meaning-text {
+    margin: 0;
+    color: #4b5563;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
 /* Notification styles */
 .notification {
     position: fixed;

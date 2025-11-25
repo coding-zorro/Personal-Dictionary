@@ -29,9 +29,68 @@ async function fetchMeaning(word) {
     }
 }
 
+// Get random word from Gemini API
+app.get("/learn", async (req, res) => {
+    try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            // 🛑 Error: Check your environment variables
+            return res.status(500).json({ error: "Gemini API key not configured" });
+        }
+
+        const prompt = "Give me one random English word and its definition. Format your response EXACTLY as: word|definition (just the word and definition separated by a pipe character, nothing else)";
+
+        // 💡 FIX: Updated model name from 'gemini-1.5-flash' (which causes a 404) 
+        // to the current stable model alias 'gemini-2.5-flash'.
+        const MODEL_NAME = "gemini-2.5-flash";
+
+        const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1/models/${MODEL_NAME}:generateContent?key=${apiKey}`,
+            {
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            }
+        );
+
+        // --- Response Parsing and Validation ---
+
+        // Ensure candidates and parts exist before trying to access .text
+        const candidates = response.data.candidates;
+        if (!candidates || candidates.length === 0 || !candidates[0].content || !candidates[0].content.parts || candidates[0].content.parts.length === 0) {
+            console.error("Gemini API error: Unexpected response structure.", response.data);
+            return res.status(500).json({ error: "Failed to get word due to unexpected API response structure." });
+        }
+
+        const text = candidates[0].content.parts[0].text.trim();
+        const parts = text.split('|').map(s => s.trim());
+        const word = parts[0];
+        const meaning = parts[1];
+
+        // Ensure both parts were successfully parsed
+        if (!word || !meaning) {
+            // Error: The model didn't follow the exact output format
+            console.error("Failed to parse Gemini response:", text);
+            return res.status(500).json({ error: "Failed to parse Gemini response: The model did not return the expected format (word|definition)." });
+        }
+
+        return res.json({ word: word.toLowerCase(), meaning });
+    } catch (error) {
+        console.error("Gemini API error:", error.response ? error.response.data : error.message);
+        // Provide better error info to the client if possible
+        const errorMessage = error.response && error.response.data && error.response.data.error
+            ? error.response.data.error.message
+            : "An unknown error occurred while calling the Gemini API.";
+
+        return res.status(500).json({ error: "Failed to get random word from Gemini", details: errorMessage });
+    }
+});
+
 // Lookup word meaning without saving
 app.get("/lookup/:word", async (req, res) => {
-    const word = req.params.word;
+    const word = req.params.word.toLowerCase(); // Convert to lowercase
 
     if (!word || word.trim() === "") {
         return res.status(400).json({ error: "word required" });
@@ -53,11 +112,12 @@ app.post("/words", async (req, res) => {
         return res.status(400).json({ error: "word required" });
     }
 
+    const lowercaseWord = word.toLowerCase(); // Convert to lowercase
     let finalMeaning = meaning;
 
     // if meaning is not provided, fetch it from the API
     if (!finalMeaning) {
-        finalMeaning = await fetchMeaning(word);
+        finalMeaning = await fetchMeaning(lowercaseWord);
         if (!finalMeaning) {
             return res.status(400).json({ error: "meaning missing and lookup failed" });
         }
@@ -66,7 +126,7 @@ app.post("/words", async (req, res) => {
     // create the entry in the database
     try {
         const entry = await prisma.wordEntry.create({
-            data: { word, meaning: finalMeaning }
+            data: { word: lowercaseWord, meaning: finalMeaning }
         });
         return res.json(entry);
     } catch (err) {
@@ -91,10 +151,12 @@ app.put("/words/:id", async (req, res) => {
     const id = Number(req.params.id);
     const { word, meaning } = req.body;
 
+    const lowercaseWord = word.toLowerCase(); // Convert to lowercase
+
     // if meaning is not provided, fetch it from the API
     let finalMeaning = meaning;
     if (!finalMeaning) {
-        finalMeaning = await fetchMeaning(word);
+        finalMeaning = await fetchMeaning(lowercaseWord);
         if (!finalMeaning)
             return res.status(400).json({ error: "meaning missing and lookup failed" });
     }
@@ -103,7 +165,7 @@ app.put("/words/:id", async (req, res) => {
     try {
         const entry = await prisma.wordEntry.update({
             where: { id },
-            data: { word, meaning: finalMeaning }
+            data: { word: lowercaseWord, meaning: finalMeaning }
         });
         res.json(entry);
     } catch {

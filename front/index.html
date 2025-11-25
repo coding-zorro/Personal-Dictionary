@@ -24,23 +24,15 @@
 
                     <input id="word" type="text" placeholder="Enter a word" required aria-label="Word to search" />
                     <button type="submit" class="btn-add" aria-label="Search word">Search</button>
+                    <button type="button" id="learn-btn" class="btn-add" aria-label="Learn a random word">Learn</button>
                 </div>
             </form>
         </section>
 
         <section aria-labelledby="list-section">
             <h2 id="list-section">Existing Words</h2>
-            <!-- display table of existing words -->
-            <table role="table" aria-label="Dictionary words">
-                <thead>
-                    <tr>
-                        <th scope="col">Word</th>
-                        <th scope="col">Meaning</th>
-
-                    </tr>
-                </thead>
-                <tbody id="table-body"></tbody>
-            </table>
+            <!-- display list of existing words -->
+            <div id="words-list"></div>
         </section>
 
         <script src="script.js"></script>

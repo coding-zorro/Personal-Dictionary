@@ -126,8 +126,7 @@ function enableEdit(item, meaningCell, editBtn) {
     input.focus();
 }
 
-// Add new word
-// Search for word (renamed from addWord)
+// Search for word (doesn't save to DB)
 async function addWord() {
     const wordInput = document.getElementById("word");
     const word = wordInput.value.trim();
@@ -154,21 +153,17 @@ async function addWord() {
             return;
         }
 
-        // Word doesn't exist - fetch meaning and navigate to new-word page
-        const res = await fetch(`${API}/words`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ word, meaning: null })
-        });
+        // Word doesn't exist - lookup meaning WITHOUT saving to DB
+        const res = await fetch(`${API}/lookup/${encodeURIComponent(word)}`);
 
         if (!res.ok) {
             const errorData = await res.json();
-            throw new Error(errorData.error || `Failed to search word: ${res.status}`);
+            throw new Error(errorData.error || `Failed to lookup word: ${res.status}`);
         }
 
-        const newWord = await res.json();
-        // Navigate to new-word page with the word and meaning
-        window.location.href = `new-word.html?word=${encodeURIComponent(newWord.word)}&meaning=${encodeURIComponent(newWord.meaning || '')}`;
+        const lookupResult = await res.json();
+        // Navigate to new-word page with the word and meaning (NOT saved yet)
+        window.location.href = `new-word.html?word=${encodeURIComponent(lookupResult.word)}&meaning=${encodeURIComponent(lookupResult.meaning || '')}`;
     } catch (error) {
         console.error("Error searching word:", error);
         showNotification(error.message || "Failed to search word. Please try again.", "error");
@@ -354,13 +349,29 @@ async function loadNewWord() {
     p.textContent = meaning || '(no meaning found)';
     meaningDiv.appendChild(p);
 
-    // Save button - already saved, just go back to index
+    // Save button - NOW actually saves to database
     const saveBtn = document.getElementById('save-btn');
-    saveBtn.onclick = () => {
-        showNotification(`"${word}" saved successfully!`, 'success');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 1000);
+    saveBtn.onclick = async () => {
+        try {
+            const res = await fetch(`${API}/words`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ word, meaning })
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to save word');
+            }
+
+            showNotification(`"${word}" saved successfully!`, 'success');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        } catch (error) {
+            console.error('Error saving word:', error);
+            showNotification(error.message || 'Failed to save word. Please try again.', 'error');
+        }
     };
 
     // All Words button

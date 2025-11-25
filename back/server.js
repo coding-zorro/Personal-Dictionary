@@ -29,6 +29,22 @@ async function fetchMeaning(word) {
     }
 }
 
+// Lookup word meaning without saving
+app.get("/lookup/:word", async (req, res) => {
+    const word = req.params.word;
+
+    if (!word || word.trim() === "") {
+        return res.status(400).json({ error: "word required" });
+    }
+
+    const meaning = await fetchMeaning(word);
+    if (!meaning) {
+        return res.status(404).json({ error: "meaning not found" });
+    }
+
+    return res.json({ word, meaning });
+});
+
 // Create new word
 app.post("/words", async (req, res) => {
     const { word, meaning } = req.body;

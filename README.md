@@ -8,24 +8,27 @@ A full-stack web application for managing your personal vocabulary with automati
 - 📝 Edit word meanings inline
 - 🗑️ Delete words with confirmation
 - 🔍 Clean and intuitive interface
-- 💾 Persistent storage with SQLite database
+- 📱 Mobile-responsive design
+- 💾 Persistent storage with PostgreSQL database
 
 ## Tech Stack
 
 **Frontend:**
 - HTML5, CSS3, JavaScript (Vanilla)
 - Inter font from Google Fonts
+- Responsive design with media queries
 
 **Backend:**
 - Node.js with Express
 - Prisma ORM
-- SQLite database
+- PostgreSQL database (SQLite for local development)
 - Free Dictionary API integration
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
 - npm or yarn
+- PostgreSQL (for production) or SQLite (for local development)
 
 ## Installation
 
@@ -39,18 +42,30 @@ A full-stack web application for managing your personal vocabulary with automati
    npm install
    ```
 
-3. **Set up the database**
+3. **Set up environment variables**
+   
+   Create a `.env` file in the root directory:
+   ```env
+   # For local development with SQLite
+   DATABASE_URL="file:./prisma/words.db"
+   PORT=3000
+   
+   # For production with PostgreSQL
+   # DATABASE_URL="postgresql://user:password@localhost:5432/dictionary"
+   ```
+
+4. **Set up the database**
    ```bash
    npm run prisma-generate
    npm run prisma-migrate
    ```
 
-4. **Start the server**
+5. **Start the server**
    ```bash
    npm run dev
    ```
 
-5. **Open the application**
+6. **Open the application**
    - Open `front/index.html` in your browser, or
    - Serve the frontend using a local server (e.g., Live Server extension in VS Code)
 
@@ -96,11 +111,13 @@ Personal Dictionary/
 ├── front/
 │   ├── index.html         # Main HTML page
 │   ├── script.js          # Frontend JavaScript
-│   └── style.css          # Styles
+│   └── style.css          # Styles (mobile-responsive)
 ├── prisma/
-│   ├── schema.prisma      # Database schema
-│   └── words.db           # SQLite database (generated)
+│   ├── schema.prisma      # Database schema (PostgreSQL)
+│   └── migrations/        # Database migrations
+├── .env.example           # Example environment variables
 ├── package.json           # Dependencies and scripts
+├── DEPLOYMENT.md          # Deployment guide for Render.com
 └── README.md              # This file
 ```
 
@@ -113,12 +130,21 @@ Personal Dictionary/
 
 ## Environment Variables
 
-Create a `.env` file in the root directory (optional):
+The app uses environment variables for configuration. Copy `.env.example` to `.env` and update:
 
+**For Local Development (SQLite):**
 ```env
-PORT=3000
 DATABASE_URL="file:./prisma/words.db"
+PORT=3000
 ```
+
+**For Production (PostgreSQL):**
+```env
+DATABASE_URL="postgresql://user:password@host:5432/database?schema=public"
+PORT=3000
+```
+
+> **Note:** When deploying to Render.com, the `DATABASE_URL` will be automatically provided by the PostgreSQL database service.
 
 ## Contributing
 

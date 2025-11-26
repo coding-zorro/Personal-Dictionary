@@ -34,14 +34,13 @@ app.get("/learn", async (req, res) => {
     try {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            // 🛑 Error: Check your environment variables
+            // Error: Check your environment variables
             return res.status(500).json({ error: "Gemini API key not configured" });
         }
 
         const prompt = "Give me one random English word and its definition. Format your response EXACTLY as: word|definition (just the word and definition separated by a pipe character, nothing else)";
 
-        // 💡 FIX: Updated model name from 'gemini-1.5-flash' (which causes a 404) 
-        // to the current stable model alias 'gemini-2.5-flash'.
+
         const MODEL_NAME = "gemini-2.5-flash";
 
         const response = await axios.post(
@@ -104,6 +103,25 @@ app.get("/lookup/:word", async (req, res) => {
     return res.json({ word, meaning });
 });
 
+// Get word by name
+app.get("/words/:word", async (req, res) => {
+    const word = req.params.word.toLowerCase();
+
+    try {
+        const entry = await prisma.wordEntry.findUnique({
+            where: { word }
+        });
+
+        if (!entry) {
+            return res.status(404).json({ error: "word not found" });
+        }
+
+        return res.json(entry);
+    } catch (err) {
+        return res.status(500).json({ error: "db error" });
+    }
+});
+
 // Create new word
 app.post("/words", async (req, res) => {
     const { word, meaning } = req.body;
@@ -130,6 +148,10 @@ app.post("/words", async (req, res) => {
         });
         return res.json(entry);
     } catch (err) {
+        // Check if it's a unique constraint violation
+        if (err.code === 'P2002') {
+            return res.status(409).json({ error: "word already exists" });
+        }
         return res.status(500).json({ error: "db error" });
     }
 });
@@ -138,7 +160,7 @@ app.post("/words", async (req, res) => {
 app.get("/words", async (req, res) => {
     try {
         const items = await prisma.wordEntry.findMany({
-            orderBy: { id: "desc" }
+            orderBy: { word: "asc" }
         });
         res.json(items);
     } catch {
@@ -146,17 +168,15 @@ app.get("/words", async (req, res) => {
     }
 });
 
-// Update word
-app.put("/words/:id", async (req, res) => {
-    const id = Number(req.params.id);
-    const { word, meaning } = req.body;
-
-    const lowercaseWord = word.toLowerCase(); // Convert to lowercase
+// Update word meaning
+app.put("/words/:word", async (req, res) => {
+    const word = req.params.word.toLowerCase();
+    const { meaning } = req.body;
 
     // if meaning is not provided, fetch it from the API
     let finalMeaning = meaning;
     if (!finalMeaning) {
-        finalMeaning = await fetchMeaning(lowercaseWord);
+        finalMeaning = await fetchMeaning(word);
         if (!finalMeaning)
             return res.status(400).json({ error: "meaning missing and lookup failed" });
     }
@@ -164,8 +184,8 @@ app.put("/words/:id", async (req, res) => {
     // update the entry in the database
     try {
         const entry = await prisma.wordEntry.update({
-            where: { id },
-            data: { word: lowercaseWord, meaning: finalMeaning }
+            where: { word },
+            data: { meaning: finalMeaning }
         });
         res.json(entry);
     } catch {
@@ -174,12 +194,12 @@ app.put("/words/:id", async (req, res) => {
 });
 
 // Delete word
-app.delete("/words/:id", async (req, res) => {
-    const id = Number(req.params.id);
+app.delete("/words/:word", async (req, res) => {
+    const word = req.params.word.toLowerCase();
 
     // delete the entry from the database
     try {
-        await prisma.wordEntry.delete({ where: { id } });
+        await prisma.wordEntry.delete({ where: { word } });
         res.json({ status: "deleted" });
     } catch {
         res.status(500).json({ error: "not found or db error" });
@@ -187,4 +207,4 @@ app.delete("/words/:id", async (req, res) => {
 });
 
 // run the server and listen on port 3000
-app.listen(3000, () => console.log("Server running at http://localhost:3000"));
+app.listen(3000, () => console.log("Server running now."));

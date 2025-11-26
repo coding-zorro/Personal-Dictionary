@@ -104,6 +104,7 @@ function enableEdit(item, meaningCell, editBtn) {
     // Change Edit button to Submit
     editBtn.textContent = "Submit";
 
+    // Revert to original meaning
     const revertButton = (newValue) => {
         // Restore text in the cell
         meaningCell.textContent = newValue || item.meaning;
@@ -118,7 +119,7 @@ function enableEdit(item, meaningCell, editBtn) {
             showNotification("Meaning cannot be empty", "error");
             return;
         }
-        const success = await updateWord(item.id, item.word, newValue);
+        const success = await updateWord(item.word, newValue);
         if (success) {
             item.meaning = newValue; // Update the item object
             revertButton(newValue);
@@ -135,7 +136,7 @@ function enableEdit(item, meaningCell, editBtn) {
                 showNotification("Meaning cannot be empty", "error");
                 return;
             }
-            const success = await updateWord(item.id, item.word, newValue);
+            const success = await updateWord(item.word, newValue);
             if (success) {
                 item.meaning = newValue; // Update the item object
                 revertButton(newValue);
@@ -182,9 +183,9 @@ async function addWord() {
             throw new Error(errorData.error || `Failed to lookup word: ${res.status}`);
         }
 
-        const lookupResult = await res.json();
+        const { word, meaning } = await res.json();
         // Navigate to new-word page with the word and meaning (NOT saved yet)
-        window.location.href = `new-word.html?word=${encodeURIComponent(lookupResult.word)}&meaning=${encodeURIComponent(lookupResult.meaning || '')}`;
+        window.location.href = `new-word.html?word=${encodeURIComponent(word)}&meaning=${encodeURIComponent(meaning || '')}`;
     } catch (error) {
         console.error("Error searching word:", error);
         showNotification(error.message || "Failed to search word. Please try again.", "error");
@@ -192,12 +193,12 @@ async function addWord() {
 }
 
 // Update word meaning
-async function updateWord(id, word, newMeaning) {
+async function updateWord(word, newMeaning) {
     try {
-        const res = await fetch(`${API}/words/${id}`, {
+        const res = await fetch(`${API}/words/${encodeURIComponent(word)}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ word, meaning: newMeaning })
+            body: JSON.stringify({ meaning: newMeaning })
         });
 
         if (!res.ok) {
@@ -216,14 +217,14 @@ async function updateWord(id, word, newMeaning) {
 }
 
 // Delete word
-async function deleteWord(id, word) {
+async function deleteWord(word) {
     // Show confirmation dialog
     if (!confirm(`Are you sure you want to delete "${word}"?`)) {
         return;
     }
 
     try {
-        const res = await fetch(`${API}/words/${id}`, { method: "DELETE" });
+        const res = await fetch(`${API}/words/${encodeURIComponent(word)}`, { method: "DELETE" });
 
         if (!res.ok) {
             const errorData = await res.json();
@@ -253,14 +254,16 @@ async function loadWordDetail() {
         return;
     }
     try {
-        const res = await fetch(`${API}/words`);
-        if (!res.ok) throw new Error('Failed to load words');
-        const items = await res.json();
-        const item = items.find(i => i.word === word);
-        if (!item) {
-            document.getElementById('word-title').textContent = 'Word not found';
-            return;
+        const res = await fetch(`${API}/words/${encodeURIComponent(word)}`);
+        if (!res.ok) {
+            if (res.status === 404) {
+                document.getElementById('word-title').textContent = 'Word not found';
+                return;
+            }
+            throw new Error('Failed to load word');
         }
+        const item = await res.json();
+
         // Populate UI
         document.getElementById('word-title').textContent = item.word;
         const meaningDiv = document.getElementById('meaning-container');
@@ -281,7 +284,7 @@ async function loadWordDetail() {
         // Delete functionality
         const deleteBtn = document.getElementById('delete-btn');
         deleteBtn.onclick = async () => {
-            await deleteWord(item.id, item.word);
+            await deleteWord(item.word);
             // After deletion, go back to main page
             window.location.href = 'index.html';
         };
@@ -321,7 +324,7 @@ function startEdit(item) {
             showNotification('Meaning cannot be empty', 'error');
             return;
         }
-        const success = await updateWord(item.id, item.word, newMeaning);
+        const success = await updateWord(item.word, newMeaning);
         if (success) {
             item.meaning = newMeaning;
             const p = document.createElement('p');
